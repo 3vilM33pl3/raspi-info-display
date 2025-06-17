@@ -1,0 +1,15 @@
+[package]
+name = "info_display"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rppal = "0.22.1"
+embedded-hal = "1.0.0"
+linux-embedded-hal = "0.4.0"
+ssd1306 = "0.10.0"
+embedded-graphics = "0.8.1"
+anyhow = "1.0.98"
+get_if_addrs = "0.5.3"
+hostname = "0.3.1"
+.

@@ -12,4 +12,3 @@ embedded-graphics = "0.8.1"
 anyhow = "1.0.98"
 get_if_addrs = "0.5.3"
 hostname = "0.3.1"
-.

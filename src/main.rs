@@ -9,7 +9,6 @@ use ssd1306::{prelude::*, I2CDisplayInterface, Ssd1306};
 use anyhow::Result;
 use get_if_addrs::get_if_addrs;
 use sysinfo::{System, Disks};
-use std::time::Duration;
 use std::fs;
 
 fn get_ip_address() -> Result<String> {
@@ -29,10 +28,36 @@ fn get_ip_address() -> Result<String> {
     Ok("127.0.0.1".to_string())
 }
 
+fn get_domain() -> String {
+    // Try to get domain from /etc/resolv.conf
+    if let Ok(contents) = fs::read_to_string("/etc/resolv.conf") {
+        for line in contents.lines() {
+            if line.starts_with("search ") {
+                return line[7..].trim().to_string();
+            }
+        }
+    }
+    
+    // Fallback: try to get from hostname -d command
+    if let Ok(output) = std::process::Command::new("hostname")
+        .arg("-d")
+        .output() {
+        if output.status.success() {
+            let domain = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if !domain.is_empty() {
+                return domain;
+            }
+        }
+    }
+    
+    // Default fallback
+    "local".to_string()
+}
+
 fn get_cpu_temp() -> Result<String> {
     let temp = fs::read_to_string("/sys/class/thermal/thermal_zone0/temp")?;
     let temp_c = temp.trim().parse::<f32>()? / 1000.0;
-    Ok(format!("{:.1}°C", temp_c))
+    Ok(format!("{:.1}C", temp_c))
 }
 
 fn get_memory_info(sys: &System) -> String {
@@ -68,7 +93,7 @@ fn get_uptime() -> String {
     let hours = ((seconds % 86400.0) / 3600.0) as u64;
     let minutes = ((seconds % 3600.0) / 60.0) as u64;
     
-    format!("Up: {}d {}h {}m", days, hours, minutes)
+    format!("{}d {}h {}m", days, hours, minutes)
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -103,22 +128,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap()
         .to_string_lossy()
         .into_owned();
+    let domain = get_domain();
     let ip_address = get_ip_address().unwrap();
     let cpu_temp = get_cpu_temp().unwrap_or_else(|_| "N/A".to_string());
     let memory_info = get_memory_info(&sys);
     let disk_usage = get_disk_usage();
     let uptime = get_uptime();
 
-    // Draw text
     let text = format!(
-        "{} {}\n{} {}\n{} {}\n{}",
-        hostname, ip_address,
-        cpu_temp, uptime,
-        memory_info, disk_usage,
-        "----------------"
+        "{}.{}\n{} {}\nuptime: {}\nmemory: {}\ndisk: {}",
+        hostname, domain, ip_address, cpu_temp, uptime, memory_info, disk_usage
     );
     
-    Text::new(&text, Point::new(0, 0), style).draw(&mut display).unwrap();
+    Text::new(&text, Point::new(0, 8), style).draw(&mut display).unwrap();
 
     // Flush to the display
     display.flush().unwrap();

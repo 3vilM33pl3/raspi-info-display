@@ -10,6 +10,7 @@ use anyhow::Result;
 use get_if_addrs::get_if_addrs;
 use sysinfo::{System, Disks};
 use std::fs;
+use std::env;
 
 fn get_ip_address() -> Result<String> {
     // Get all network interfaces
@@ -97,6 +98,22 @@ fn get_uptime() -> String {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args: Vec<String> = env::args().collect();
+    if args.len() > 1 && args[1] == "--clear" {
+        let i2c = I2cdev::new("/dev/i2c-1")?;
+        let interface = I2CDisplayInterface::new(i2c);
+        let mut display = Ssd1306::new(
+            interface,
+            DisplaySize128x32,
+            DisplayRotation::Rotate0,
+        )
+        .into_buffered_graphics_mode();
+        display.init().unwrap();
+        display.clear(BinaryColor::Off).unwrap();
+        display.flush().unwrap();
+        return Ok(());
+    }
+
     // Open I2C bus 13 (adjust to your working bus)
     let i2c = I2cdev::new("/dev/i2c-1")?;
 

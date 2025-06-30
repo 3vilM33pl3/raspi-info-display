@@ -1,5 +1,5 @@
 use embedded_graphics::{
-    mono_font::{ascii::FONT_6X10, MonoTextStyle},
+    mono_font::{ascii::FONT_6X10, iso_8859_9::FONT_7X14_BOLD, MonoTextStyle},
     pixelcolor::BinaryColor,
     prelude::*,
     text::Text,
@@ -64,7 +64,7 @@ fn get_cpu_temp() -> Result<String> {
 fn get_memory_info(sys: &System) -> String {
     let total_mem = sys.total_memory() / 1024 / 1024; // Convert to MB
     let used_mem = (sys.total_memory() - sys.free_memory()) / 1024 / 1024;
-    format!("Mem: {}/{}MB", used_mem, total_mem)
+    format!("{}/{}MB", used_mem, total_mem)
 }
 
 fn get_disk_usage() -> String {
@@ -79,7 +79,7 @@ fn get_disk_usage() -> String {
     
     let total_gb = total_size / 1024 / 1024 / 1024;
     let used_gb = total_used / 1024 / 1024 / 1024;
-    format!("Disk: {}/{}GB", used_gb, total_gb)
+    format!("{}/{}GB", used_gb, total_gb)
 }
 
 fn get_uptime() -> String {
@@ -104,7 +104,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let interface = I2CDisplayInterface::new(i2c);
         let mut display = Ssd1306::new(
             interface,
-            DisplaySize128x32,
+            DisplaySize128x64,
             DisplayRotation::Rotate0,
         )
         .into_buffered_graphics_mode();
@@ -123,7 +123,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize the display in 128x64 resolution, I2C mode
     let mut display = Ssd1306::new(
         interface,
-        DisplaySize128x32,
+        DisplaySize128x64,
         DisplayRotation::Rotate0,
     )
     .into_buffered_graphics_mode();
@@ -134,7 +134,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     display.clear(BinaryColor::Off).unwrap();
 
     // Set up font and style
-    let style = MonoTextStyle::new(&FONT_6X10, BinaryColor::On);
+    
 
     // Initialize system info
     let mut sys = System::new_all();
@@ -152,12 +152,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let disk_usage = get_disk_usage();
     let uptime = get_uptime();
 
-    let text = format!(
-        "{}.{}\n{} {}\nuptime: {}\nmemory: {}\ndisk: {}",
-        hostname, domain, ip_address, cpu_temp, uptime, memory_info, disk_usage
+    let yellow_text = format!(
+        "{}.{}",
+        hostname, domain
     );
-    
-    Text::new(&text, Point::new(0, 8), style).draw(&mut display).unwrap();
+
+
+    let blue_text = format!(
+        "{}\ncpu: {}\nuptime: {}\nmemory: {}\ndisk: {}",
+        ip_address, cpu_temp, uptime, memory_info, disk_usage
+    );
+
+    let style = MonoTextStyle::new(&FONT_7X14_BOLD, BinaryColor::On);
+    Text::new(&yellow_text, Point::new(0, 8), style).draw(&mut display).unwrap();
+
+    let style = MonoTextStyle::new(&FONT_6X10, BinaryColor::On);
+    Text::new(&blue_text, Point::new(0, 22), style).draw(&mut display).unwrap();
 
     // Flush to the display
     display.flush().unwrap();

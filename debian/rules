@@ -1,0 +1,16 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	cargo build --release
+
+override_dh_auto_clean:
+	cargo clean || true
+
+override_dh_auto_test:
+	# Skip tests for now
+
+override_dh_installdocs:
+	dh_installdocs README.md

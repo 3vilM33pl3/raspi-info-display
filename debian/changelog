@@ -1,0 +1,9 @@
+info-display (0.1.1-1) unstable; urgency=medium
+
+  * Initial release with systemd service support
+  * Added daemon mode functionality
+  * Configurable refresh intervals
+  * Clear screen option
+  * System information display on OLED
+
+ -- Your Name <your.email@example.com>  Mon, 30 Jun 2025 12:00:00 +0000

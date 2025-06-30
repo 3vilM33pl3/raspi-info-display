@@ -1,0 +1,34 @@
+#!/bin/bash
+# postinst script for info-display
+
+set -e
+
+case "$1" in
+    configure)
+        # Copy systemd service file
+        if [ -f /usr/share/info-display/info-display.service ]; then
+            cp /usr/share/info-display/info-display.service /etc/systemd/system/
+            
+            # Reload systemd configuration
+            systemctl daemon-reload
+            
+            # Enable the service (but don't start it automatically)
+            systemctl enable info-display.service
+                 echo "Info Display service has been installed and enabled."
+        echo "To start the service, run: sudo systemctl start info-display.service"
+        echo "To check status, run: sudo systemctl status info-display.service"
+        fi
+
+        #DEBHELPER#
+        ;;
+
+    abort-upgrade|abort-remove|abort-deconfigure)
+        ;;
+
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 1
+        ;;
+esac
+
+exit 0

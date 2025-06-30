@@ -11,6 +11,9 @@ use get_if_addrs::get_if_addrs;
 use sysinfo::{System, Disks};
 use std::fs;
 use std::env;
+use std::thread;
+use std::time::Duration;
+use daemonize::Daemonize;
 
 fn get_ip_address() -> Result<String> {
     // Get all network interfaces
@@ -99,7 +102,52 @@ fn get_uptime() -> String {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
-    if args.len() > 1 && args[1] == "--clear" {
+    
+    // Parse command line arguments
+    let mut interval_seconds = 5; // Default to 5 seconds
+    let mut clear_only = false;
+    let mut daemon_mode = false;
+    
+    for i in 1..args.len() {
+        match args[i].as_str() {
+            "--clear" => clear_only = true,
+            "--daemon" | "-d" => daemon_mode = true,
+            "--interval" | "-i" => {
+                if i + 1 < args.len() {
+                    if let Ok(seconds) = args[i + 1].parse::<u64>() {
+                        interval_seconds = seconds;
+                    }
+                }
+            }
+            arg if arg.starts_with("--interval=") => {
+                if let Some(value) = arg.strip_prefix("--interval=") {
+                    if let Ok(seconds) = value.parse::<u64>() {
+                        interval_seconds = seconds;
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    
+    // Handle daemon mode
+    if daemon_mode {
+        let daemonize = Daemonize::new()
+            .pid_file("/tmp/info_display.pid")
+            .chown_pid_file(true)
+            .working_directory("/tmp");
+
+        match daemonize.start() {
+            Ok(_) => {}, // Successfully daemonized, continue with normal execution
+            Err(e) => {
+                eprintln!("Error starting daemon: {}", e);
+                std::process::exit(1);
+            }
+        }
+    }
+    
+    // Handle clear-only mode
+    if clear_only {
         let i2c = I2cdev::new("/dev/i2c-1")?;
         let interface = I2CDisplayInterface::new(i2c);
         let mut display = Ssd1306::new(
@@ -114,7 +162,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
-    // Open I2C bus 13 (adjust to your working bus)
+    // Open I2C bus 1 (adjust to your working bus)
     let i2c = I2cdev::new("/dev/i2c-1")?;
 
     // Create the I2C interface for SSD1306
@@ -130,47 +178,46 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     display.init().unwrap();
 
-    // Clear display
-    display.clear(BinaryColor::Off).unwrap();
+    loop {
+        // Clear display
+        display.clear(BinaryColor::Off).unwrap();
 
-    // Set up font and style
-    
+        // Initialize system info
+        let mut sys = System::new_all();
+        sys.refresh_all();
 
-    // Initialize system info
-    let mut sys = System::new_all();
-    sys.refresh_all();
+        // Get system information
+        let hostname = hostname::get()
+            .unwrap()
+            .to_string_lossy()
+            .into_owned();
+        let domain = get_domain();
+        let ip_address = get_ip_address().unwrap();
+        let cpu_temp = get_cpu_temp().unwrap_or_else(|_| "N/A".to_string());
+        let memory_info = get_memory_info(&sys);
+        let disk_usage = get_disk_usage();
+        let uptime = get_uptime();
 
-    // Get system information
-    let hostname = hostname::get()
-        .unwrap()
-        .to_string_lossy()
-        .into_owned();
-    let domain = get_domain();
-    let ip_address = get_ip_address().unwrap();
-    let cpu_temp = get_cpu_temp().unwrap_or_else(|_| "N/A".to_string());
-    let memory_info = get_memory_info(&sys);
-    let disk_usage = get_disk_usage();
-    let uptime = get_uptime();
+        let yellow_text = format!(
+            "{}.{}",
+            hostname, domain
+        );
 
-    let yellow_text = format!(
-        "{}.{}",
-        hostname, domain
-    );
+        let blue_text = format!(
+            "{}\ncpu: {}\nuptime: {}\nmemory: {}\ndisk: {}",
+            ip_address, cpu_temp, uptime, memory_info, disk_usage
+        );
 
+        let style = MonoTextStyle::new(&FONT_7X14_BOLD, BinaryColor::On);
+        Text::new(&yellow_text, Point::new(0, 8), style).draw(&mut display).unwrap();
 
-    let blue_text = format!(
-        "{}\ncpu: {}\nuptime: {}\nmemory: {}\ndisk: {}",
-        ip_address, cpu_temp, uptime, memory_info, disk_usage
-    );
+        let style = MonoTextStyle::new(&FONT_6X10, BinaryColor::On);
+        Text::new(&blue_text, Point::new(0, 22), style).draw(&mut display).unwrap();
 
-    let style = MonoTextStyle::new(&FONT_7X14_BOLD, BinaryColor::On);
-    Text::new(&yellow_text, Point::new(0, 8), style).draw(&mut display).unwrap();
+        // Flush to the display
+        display.flush().unwrap();
 
-    let style = MonoTextStyle::new(&FONT_6X10, BinaryColor::On);
-    Text::new(&blue_text, Point::new(0, 22), style).draw(&mut display).unwrap();
-
-    // Flush to the display
-    display.flush().unwrap();
-
-    Ok(())
+        // Sleep for the specified interval
+        thread::sleep(Duration::from_secs(interval_seconds));
+    }
 }

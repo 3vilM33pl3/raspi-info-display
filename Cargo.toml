@@ -1,7 +1,8 @@
 [package]
 name = "info_display"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
+description = "System information display service for OLED screens"
 
 [dependencies]
 rppal = "0.22.1"
@@ -14,3 +15,26 @@ get_if_addrs = "0.5.3"
 hostname = "0.3.1"
 sysinfo = "0.30.13"
 chrono = "0.4.34"
+daemonize = "0.5.0"
+
+[package.metadata.deb]
+maintainer = "3vilM33pl3 <olivier@robotmotel.com>"
+copyright = "2025, 3vilM33pl3 <olivier@robotmotel.com>"
+license-file = ["LICENSE", "4"]
+extended-description = """\
+A Rust-based system information display service that shows
+hostname, IP address, CPU temperature, memory usage, disk usage,
+and uptime on an SSD1306 OLED display via I2C.
+
+The service runs continuously and updates the display at
+configurable intervals."""
+depends = "$auto"
+section = "utils"
+priority = "optional"
+assets = [
+    ["target/release/info_display", "usr/bin/", "755"],
+    ["debian/systemd/info-display.service", "usr/share/info-display/", "644"],
+    ["README.md", "usr/share/doc/info-display/", "644"],
+]
+maintainer-scripts = "debian/"
+systemd-units = { unit-name = "info-display", enable = false }

@@ -1,0 +1,35 @@
+#!/bin/bash
+        if systemctl is-enabled --quiet info-display.service; then
+            systemctl disable info-display.service
+        fi
+
+        #DEBHELPER#
+    
+
+    failed-upgrade: script for info-display
+
+set -e
+
+case "$1" in
+    remove|upgrade|deconfigure)
+        # Stop the service if it's running
+        if systemctl is-active --quiet info-display.service; then
+            systemctl stop info-display.service
+        fi
+        
+        # Disable the service
+        if systemctl is-enabled --quiet info-display.service; then
+            systemctl disable info-display.service
+        fi
+        ;;
+
+    failed-upgrade)
+        ;;
+
+    *)
+        echo "prerm called with unknown argument \`$1'" >&2
+        exit 1
+        ;;
+esac
+
+exit 0

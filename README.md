@@ -59,11 +59,51 @@ A modular Rust application that displays comprehensive system information on an 
 
 ### Hardware Setup
 
-1. Connect your SSD1306 display to the Raspberry Pi:
-   - VCC to 3.3V
-   - GND to GND
-   - SCL to SCL (GPIO 3)
-   - SDA to SDA (GPIO 2)
+#### Raspberry Pi 5 Wiring Diagram
+
+Connect your SSD1306 OLED display to the Raspberry Pi 5 as follows:
+
+```
+SSD1306 OLED Display        Raspberry Pi 5 GPIO Header
+┌─────────────────┐         ┌─────────────────────────────┐
+│                 │    ┌────┤  1 [3.3V]        [5V] 2     │◄─── VCC
+│  ┌─────────┐    │    │┌───┤  3 [SDA]         [5V] 4     │◄─── SDA
+│  │ DISPLAY │    │    ││┌──┤  5 [SCL]        [GND] 6     │◄─── SCL
+│  │         │    │    │││  │  7 [GPIO4]   [GPIO14] 8     │
+│  │ 128x64  │    │    │││  │  9 [GND]     [GPIO15] 10    │
+│  │         │    │    │││  │ 11 [GPIO17]  [GPIO18] 12    │
+│  │ PIXELS  │    │    │││  │ 13 [GPIO27]     [GND] 14    │◄─── GND
+│  └─────────┘    │    │││  │ 15 [GPIO22]  [GPIO23] 16    │
+│                 │    │││  │ 17 [3.3V]    [GPIO24] 18    │
+│ VCC SDA SCL GND │    │││  │ 19 [GPIO10]     [GND] 20    │
+│  │   │   │   │  │    │││  │ 21 [GPIO9]   [GPIO25] 22    │
+└──┼───┼───┼───┼──┘    │││  │ 23 [GPIO11]   [GPIO8] 24    │
+   │   │   │   └───────┼┼┼──┤ 25 [GND]      [GPIO7] 26    │
+   │   │   └───────────┼┼┘  │ 27 [ID_SD]    [ID_SC] 28    │
+   │   └───────────────┼┘   │ 29 [GPIO5]      [GND] 30    │
+   └───────────────────┘    │ 31 [GPIO6]   [GPIO12] 32    │
+                            │ 33 [GPIO13]     [GND] 34    │
+                            │ 35 [GPIO19]  [GPIO16] 36    │
+                            │ 37 [GPIO26]  [GPIO20] 38    │
+                            │ 39 [GND]     [GPIO21] 40    │
+                            └─────────────────────────────┘
+```
+
+#### Connection Summary
+
+| SSD1306 Pin | Function | Raspberry Pi 5 Pin | GPIO Number |
+|-------------|----------|-------------------|-------------|
+| VCC         | Power    | Pin 1 (3.3V)      | -           |
+| GND         | Ground   | Pin 14 (GND)      | -           |
+| SCL         | I2C Clock| Pin 5             | GPIO 3      |
+| SDA         | I2C Data | Pin 3             | GPIO 2      |
+
+#### Important Notes
+
+- **Use 3.3V**: Always connect VCC to 3.3V (Pin 1), never to 5V
+- **I2C Address**: Most SSD1306 displays use address 0x3C or 0x3D
+- **Pull-up Resistors**: Built into the Pi 5, no external resistors needed
+- **Wire Length**: Keep I2C wires short (< 30cm) for reliable communication
 
 ### Basic Usage
 
@@ -218,9 +258,15 @@ sudo ./target/release/info_display --gpio --temperature --interval 3
 ## Troubleshooting
 
 ### Display Issues
-- Ensure I2C is enabled: `sudo raspi-config` → Interface Options → I2C
-- Check I2C connection: `sudo i2cdetect -y 1` (should show device at 0x3c or 0x3d)
-- Verify wiring: VCC→3.3V, GND→GND, SCL→GPIO3, SDA→GPIO2
+- **Enable I2C**: `sudo raspi-config` → Interface Options → I2C → Enable
+- **Check I2C connection**: `sudo i2cdetect -y 1` (should show device at 0x3c or 0x3d)
+- **Verify wiring**: Follow the diagram above exactly
+  - VCC → Pin 1 (3.3V) - **NEVER use 5V**
+  - GND → Pin 14 (GND)
+  - SCL → Pin 5 (GPIO 3)
+  - SDA → Pin 3 (GPIO 2)
+- **Pi 5 specific**: Ensure you're using the correct GPIO pins (layout is the same as Pi 4)
+- **Test I2C**: `sudo i2cdetect -y 1` should show your display (usually 0x3c)
 
 ### Permission Issues
 - Run with `sudo` (required for I2C and system access)

@@ -1,6 +1,6 @@
 [package]
 name = "info_display"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2024"
 description = "System information display service for OLED screens"
 

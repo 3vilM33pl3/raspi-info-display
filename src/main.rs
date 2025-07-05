@@ -39,10 +39,11 @@ impl Screen for NetworkScreen {
             .into_owned();
         let domain = get_domain();
         let ip_address = get_ip_address()?;
+        let mac_address = get_mac_address();
         
         Ok(format!(
-            "{}.{}\n{}",
-            hostname, domain, ip_address
+            "{}.{}\n{}\n{}",
+            hostname, domain, ip_address, mac_address
         ))
     }
 }
@@ -166,6 +167,27 @@ impl Screen for HardwareScreen {
     }
 }
 
+// Temperature information screen
+struct TemperatureScreen;
+
+impl Screen for TemperatureScreen {
+    fn name(&self) -> &'static str {
+        "temperature"
+    }
+    
+    fn render(&self, _sys: &System) -> Result<String> {
+        let cpu_temp = get_cpu_temp().unwrap_or_else(|_| "N/A".to_string());
+        let gpu_temp = get_gpu_temp();
+        let throttle_status = get_throttle_status();
+        let cpu_freq = get_cpu_freq();
+        
+        Ok(format!(
+            "CPU: {}\nGPU: {}\nFreq: {}\nStatus: {}",
+            cpu_temp, gpu_temp, cpu_freq, throttle_status
+        ))
+    }
+}
+
 // Screen manager to handle cycling through screens
 struct ScreenManager {
     screens: Vec<Box<dyn Screen>>,
@@ -184,6 +206,7 @@ impl ScreenManager {
                 "system" => screens.push(Box::new(SystemScreen)),
                 "storage" => screens.push(Box::new(StorageScreen)),
                 "hardware" => screens.push(Box::new(HardwareScreen)),
+                "temperature" => screens.push(Box::new(TemperatureScreen)),
                 "overview" => screens.push(Box::new(OverviewScreen)),
                 _ => eprintln!("Unknown screen: {}", screen_name),
             }
@@ -261,10 +284,107 @@ fn get_domain() -> String {
     "local".to_string()
 }
 
+fn get_mac_address() -> String {
+    // First try to get MAC from the same interface that has the IP
+    if let Ok(interfaces) = get_if_addrs() {
+        for interface in interfaces {
+            if !interface.is_loopback() {
+                if let std::net::IpAddr::V4(_) = interface.addr.ip() {
+                    // Found the interface with IP, now get its MAC
+                    let interface_name = &interface.name;
+                    
+                    // Try reading MAC from /sys/class/net/{interface}/address
+                    let mac_path = format!("/sys/class/net/{}/address", interface_name);
+                    if let Ok(mac) = fs::read_to_string(&mac_path) {
+                        let mac_addr = mac.trim().to_uppercase();
+                        // Only return if it's not a placeholder MAC
+                        if !mac_addr.starts_with("00:00:00") && mac_addr != "00:00:00:00:00:00" {
+                            return mac_addr;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // Fallback: try to find eth0 MAC specifically
+    if let Ok(mac) = fs::read_to_string("/sys/class/net/eth0/address") {
+        let mac_addr = mac.trim().to_uppercase();
+        if !mac_addr.starts_with("00:00:00") && mac_addr != "00:00:00:00:00:00" {
+            return mac_addr;
+        }
+    }
+    
+    "Unknown".to_string()
+}
+
 fn get_cpu_temp() -> Result<String> {
     let temp = fs::read_to_string("/sys/class/thermal/thermal_zone0/temp")?;
     let temp_c = temp.trim().parse::<f32>()? / 1000.0;
     Ok(format!("{:.1}C", temp_c))
+}
+
+fn get_gpu_temp() -> String {
+    if let Ok(output) = std::process::Command::new("vcgencmd")
+        .arg("measure_temp")
+        .output() {
+        if output.status.success() {
+            let temp_output = String::from_utf8_lossy(&output.stdout);
+            // Output format: "temp=45.2'C"
+            if let Some(temp_part) = temp_output.split('=').nth(1) {
+                if let Some(temp_value) = temp_part.split('\'').next() {
+                    return format!("{}C", temp_value);
+                }
+            }
+        }
+    }
+    "N/A".to_string()
+}
+
+fn get_throttle_status() -> String {
+    if let Ok(output) = std::process::Command::new("vcgencmd")
+        .arg("get_throttled")
+        .output() {
+        if output.status.success() {
+            let throttle_output = String::from_utf8_lossy(&output.stdout);
+            // Output format: "throttled=0x0"
+            if let Some(value_part) = throttle_output.split('=').nth(1) {
+                let throttle_value = value_part.trim();
+                return match throttle_value {
+                    "0x0" => "OK".to_string(),
+                    "0x1" => "Under-voltage".to_string(),
+                    "0x2" => "ARM freq cap".to_string(),
+                    "0x4" => "Throttled".to_string(),
+                    "0x8" => "Soft temp limit".to_string(),
+                    "0x10000" => "Under-volt occurred".to_string(),
+                    "0x20000" => "ARM freq cap occurred".to_string(),
+                    "0x40000" => "Throttling occurred".to_string(),
+                    "0x80000" => "Soft temp limit occurred".to_string(),
+                    _ => format!("Status: {}", throttle_value),
+                };
+            }
+        }
+    }
+    "Unknown".to_string()
+}
+
+fn get_cpu_freq() -> String {
+    if let Ok(output) = std::process::Command::new("vcgencmd")
+        .arg("measure_clock")
+        .arg("arm")
+        .output() {
+        if output.status.success() {
+            let freq_output = String::from_utf8_lossy(&output.stdout);
+            // Output format: "frequency(48)=1500000000"
+            if let Some(freq_part) = freq_output.split('=').nth(1) {
+                if let Ok(freq_hz) = freq_part.trim().parse::<u64>() {
+                    let freq_mhz = freq_hz / 1_000_000;
+                    return format!("{}MHz", freq_mhz);
+                }
+            }
+        }
+    }
+    "Unknown".to_string()
 }
 
 fn get_memory_info(sys: &System) -> String {
@@ -426,6 +546,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "--system" => enabled_screens.push("system"),
             "--storage" => enabled_screens.push("storage"),
             "--hardware" => enabled_screens.push("hardware"),
+            "--temperature" => enabled_screens.push("temperature"),
             "--overview" => enabled_screens.push("overview"),
             "--help" | "-h" => {
                 println!("Info Display - System information on OLED display");
@@ -436,17 +557,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 println!("  --daemon, -d         Run as daemon");
                 println!("  --interval, -i <N>   Update interval in seconds (default: 5)");
                 println!("  --screen-duration, -s <N>  Duration each screen is shown (default: 10)");
-                println!("  --screens <list>     Comma-separated list of screens (network,system,storage,hardware,overview)");
+                println!("  --screens <list>     Comma-separated list of screens (network,system,storage,hardware,temperature,overview)");
                 println!("  --network            Enable network screen");
                 println!("  --system             Enable system screen");
                 println!("  --storage            Enable storage screen");
                 println!("  --hardware           Enable hardware screen");
+                println!("  --temperature        Enable temperature screen");
                 println!("  --overview           Enable overview screen (default)");
                 println!("  --help, -h           Show this help message");
                 println!();
                 println!("Examples:");
                 println!("  {} --network --system                    # Show network and system screens", args[0]);
-                println!("  {} --screens network,system,hardware     # Same as above plus hardware", args[0]);
+                println!("  {} --screens network,system,temperature  # Same as above plus temperature", args[0]);
                 println!("  {} --screen-duration 15 --overview       # Show overview screen for 15s each", args[0]);
                 std::process::exit(0);
             }

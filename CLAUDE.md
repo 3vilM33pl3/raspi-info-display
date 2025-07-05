@@ -34,7 +34,8 @@ This project currently has no test suite. When adding tests, use:
 ### Key Functions
 
 - `get_ip_address()` - Finds first non-loopback IPv4 interface
-- `get_domain()` - Reads domain from `/etc/resolv.conf` or hostname command  
+- `get_domain()` - Reads domain from `/etc/resolv.conf` or hostname command
+- `get_mac_address()` - Gets MAC address of primary ethernet interface  
 - `get_cpu_temp()` - Reads temperature from `/sys/class/thermal/thermal_zone0/temp`
 - `get_memory_info()` - Uses sysinfo crate for memory statistics
 - `get_disk_usage()` - Aggregates disk usage across all mounted filesystems
@@ -43,6 +44,9 @@ This project currently has no test suite. When adding tests, use:
 - `get_serial_number()` - Reads serial from `/proc/device-tree/serial-number` or `/proc/cpuinfo`
 - `get_firmware_version()` - Gets firmware version via `vcgencmd version`
 - `get_boot_partition()` - Finds boot partition via `findmnt` or `/proc/mounts`
+- `get_gpu_temp()` - Gets GPU temperature via `vcgencmd measure_temp`
+- `get_throttle_status()` - Gets throttling status via `vcgencmd get_throttled`
+- `get_cpu_freq()` - Gets current CPU frequency via `vcgencmd measure_clock arm`
 
 ### Hardware Requirements
 
@@ -61,6 +65,7 @@ This project currently has no test suite. When adding tests, use:
 - `--system` - Enable system information screen (CPU, uptime, boot partition)
 - `--storage` - Enable storage information screen (memory, disk)
 - `--hardware` - Enable hardware information screen (Pi model, serial, firmware)
+- `--temperature` - Enable temperature information screen (CPU/GPU temps, throttling)
 - `--overview` - Enable overview screen (all info combined, default)
 - `--help` or `-h` - Show help message
 
@@ -68,10 +73,11 @@ This project currently has no test suite. When adding tests, use:
 
 The application supports multiple modular screens that can be enabled individually:
 
-- **Network Screen**: Displays hostname, domain, and IP address
+- **Network Screen**: Displays hostname, domain, IP address, and MAC address
 - **System Screen**: Shows CPU temperature, system uptime, and boot partition
 - **Storage Screen**: Shows memory usage and disk usage
 - **Hardware Screen**: Shows Pi model, serial number, and firmware version
+- **Temperature Screen**: Shows CPU/GPU temperatures, CPU frequency, and throttling status
 - **Overview Screen**: Combined view with all information (original layout)
 
 When multiple screens are enabled, the application cycles through them at the specified screen duration interval.

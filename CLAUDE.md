@@ -47,6 +47,10 @@ This project currently has no test suite. When adding tests, use:
 - `get_gpu_temp()` - Gets GPU temperature via `vcgencmd measure_temp`
 - `get_throttle_status()` - Gets throttling status via `vcgencmd get_throttled`
 - `get_cpu_freq()` - Gets current CPU frequency via `vcgencmd measure_clock arm`
+- `get_i2c_devices()` - Scans I2C bus 1 for connected devices via `i2cdetect`
+- `get_gpio_states()` - Reads GPIO pin states from `/sys/class/gpio/`
+- `get_spi_devices()` - Lists available SPI devices from `/dev/spidev*`
+- `get_1wire_sensors()` - Reads 1-Wire sensor data from `/sys/bus/w1/devices/`
 
 ### Hardware Requirements
 
@@ -66,6 +70,7 @@ This project currently has no test suite. When adding tests, use:
 - `--storage` - Enable storage information screen (memory, disk)
 - `--hardware` - Enable hardware information screen (Pi model, serial, firmware)
 - `--temperature` - Enable temperature information screen (CPU/GPU temps, throttling)
+- `--gpio` - Enable GPIO/sensor information screen (I2C, SPI, GPIO states, 1-Wire)
 - `--overview` - Enable overview screen (all info combined, default)
 - `--help` or `-h` - Show help message
 
@@ -78,6 +83,7 @@ The application supports multiple modular screens that can be enabled individual
 - **Storage Screen**: Shows memory usage and disk usage
 - **Hardware Screen**: Shows Pi model, serial number, and firmware version
 - **Temperature Screen**: Shows CPU/GPU temperatures, CPU frequency, and throttling status
+- **GPIO/Sensor Screen**: Shows I2C devices, GPIO pin states, SPI devices, and 1-Wire sensors
 - **Overview Screen**: Combined view with all information (original layout)
 
 When multiple screens are enabled, the application cycles through them at the specified screen duration interval.

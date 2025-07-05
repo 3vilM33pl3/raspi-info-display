@@ -1,5 +1,5 @@
 use embedded_graphics::{
-    mono_font::{ascii::{FONT_6X10, FONT_6X12}, iso_8859_16::FONT_7X13_BOLD, MonoTextStyle},
+    mono_font::{ascii::FONT_6X10, iso_8859_16::FONT_7X13_BOLD, MonoTextStyle},
     pixelcolor::BinaryColor,
     prelude::*,
     text::Text,
@@ -188,6 +188,40 @@ impl Screen for TemperatureScreen {
     }
 }
 
+// GPIO and sensor information screen
+struct GPIOScreen;
+
+impl Screen for GPIOScreen {
+    fn name(&self) -> &'static str {
+        "gpio"
+    }
+    
+    fn render(&self, _sys: &System) -> Result<String> {
+        let i2c_devices = get_i2c_devices();
+        let gpio_states = get_gpio_states();
+        let spi_devices = get_spi_devices();
+        let wire_sensors = get_1wire_sensors();
+        
+        // Truncate long device lists for display
+        let short_i2c = if i2c_devices.len() > 12 {
+            format!("{}...", &i2c_devices[..9])
+        } else {
+            i2c_devices
+        };
+        
+        let short_gpio = if gpio_states.len() > 15 {
+            format!("{}...", &gpio_states[..12])
+        } else {
+            gpio_states
+        };
+        
+        Ok(format!(
+            "I2C: {}\nGPIO: {}\nSPI: {}\n1W: {}",
+            short_i2c, short_gpio, spi_devices, wire_sensors
+        ))
+    }
+}
+
 // Screen manager to handle cycling through screens
 struct ScreenManager {
     screens: Vec<Box<dyn Screen>>,
@@ -207,6 +241,7 @@ impl ScreenManager {
                 "storage" => screens.push(Box::new(StorageScreen)),
                 "hardware" => screens.push(Box::new(HardwareScreen)),
                 "temperature" => screens.push(Box::new(TemperatureScreen)),
+                "gpio" => screens.push(Box::new(GPIOScreen)),
                 "overview" => screens.push(Box::new(OverviewScreen)),
                 _ => eprintln!("Unknown screen: {}", screen_name),
             }
@@ -387,6 +422,120 @@ fn get_cpu_freq() -> String {
     "Unknown".to_string()
 }
 
+fn get_i2c_devices() -> String {
+    let mut devices = Vec::new();
+    
+    // Check for I2C devices on bus 1 (most common on Pi)
+    if let Ok(output) = std::process::Command::new("i2cdetect")
+        .args(["-y", "1"])
+        .output() {
+        if output.status.success() {
+            let detect_output = String::from_utf8_lossy(&output.stdout);
+            for line in detect_output.lines().skip(1) { // Skip header
+                for (_col, addr) in line.split_whitespace().skip(1).enumerate() {
+                    if addr != "--" && addr.len() == 2 {
+                        let device_addr = format!("0x{}", addr);
+                        devices.push(device_addr);
+                    }
+                }
+            }
+        }
+    }
+    
+    if devices.is_empty() {
+        "None".to_string()
+    } else {
+        devices.join(",")
+    }
+}
+
+fn get_gpio_states() -> String {
+    // Check some commonly used GPIO pins (avoid system pins)
+    let check_pins = [18, 19, 20, 21, 22, 23, 24, 25];
+    let mut states = Vec::new();
+    
+    for pin in check_pins {
+        let gpio_path = format!("/sys/class/gpio/gpio{}/value", pin);
+        if let Ok(value) = fs::read_to_string(&gpio_path) {
+            let state = if value.trim() == "1" { "H" } else { "L" };
+            states.push(format!("{}:{}", pin, state));
+        } else {
+            // Pin might not be exported, try to check direction
+            let dir_path = format!("/sys/class/gpio/gpio{}/direction", pin);
+            if fs::metadata(&dir_path).is_ok() {
+                states.push(format!("{}:?", pin));
+            }
+        }
+    }
+    
+    if states.is_empty() {
+        "No active pins".to_string()
+    } else {
+        states.join(" ")
+    }
+}
+
+fn get_spi_devices() -> String {
+    let mut spi_devices = Vec::new();
+    
+    // Check for SPI devices
+    if let Ok(entries) = fs::read_dir("/dev") {
+        for entry in entries.flatten() {
+            let filename = entry.file_name();
+            let name = filename.to_string_lossy();
+            if name.starts_with("spidev") {
+                spi_devices.push(name.to_string());
+            }
+        }
+    }
+    
+    if spi_devices.is_empty() {
+        "None".to_string()
+    } else {
+        spi_devices.join(",")
+    }
+}
+
+fn get_1wire_sensors() -> String {
+    let w1_path = "/sys/bus/w1/devices";
+    let mut sensors = Vec::new();
+    
+    if let Ok(entries) = fs::read_dir(w1_path) {
+        for entry in entries.flatten() {
+            let name = entry.file_name();
+            let sensor_name = name.to_string_lossy();
+            // Skip the master device
+            if !sensor_name.starts_with("w1_bus_master") {
+                // Try to read temperature if it's a temperature sensor
+                let temp_path = format!("{}/{}/w1_slave", w1_path, sensor_name);
+                if let Ok(contents) = fs::read_to_string(&temp_path) {
+                    if contents.contains("YES") {
+                        if let Some(temp_line) = contents.lines().last() {
+                            if let Some(temp_pos) = temp_line.find("t=") {
+                                if let Ok(temp_raw) = temp_line[temp_pos + 2..].parse::<i32>() {
+                                    let temp_c = temp_raw as f32 / 1000.0;
+                                    sensors.push(format!("{:.1}C", temp_c));
+                                    continue;
+                                }
+                            }
+                        }
+                    }
+                }
+                // If we can't read temperature, just show the device type
+                if sensor_name.len() > 3 {
+                    sensors.push(sensor_name[..3].to_string());
+                }
+            }
+        }
+    }
+    
+    if sensors.is_empty() {
+        "None".to_string()
+    } else {
+        sensors.join(",")
+    }
+}
+
 fn get_memory_info(sys: &System) -> String {
     let total_mem = sys.total_memory() / 1024 / 1024; // Convert to MB
     let used_mem = (sys.total_memory() - sys.free_memory()) / 1024 / 1024;
@@ -547,6 +696,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "--storage" => enabled_screens.push("storage"),
             "--hardware" => enabled_screens.push("hardware"),
             "--temperature" => enabled_screens.push("temperature"),
+            "--gpio" => enabled_screens.push("gpio"),
             "--overview" => enabled_screens.push("overview"),
             "--help" | "-h" => {
                 println!("Info Display - System information on OLED display");
@@ -557,18 +707,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 println!("  --daemon, -d         Run as daemon");
                 println!("  --interval, -i <N>   Update interval in seconds (default: 5)");
                 println!("  --screen-duration, -s <N>  Duration each screen is shown (default: 10)");
-                println!("  --screens <list>     Comma-separated list of screens (network,system,storage,hardware,temperature,overview)");
+                println!("  --screens <list>     Comma-separated list of screens (network,system,storage,hardware,temperature,gpio,overview)");
                 println!("  --network            Enable network screen");
                 println!("  --system             Enable system screen");
                 println!("  --storage            Enable storage screen");
                 println!("  --hardware           Enable hardware screen");
                 println!("  --temperature        Enable temperature screen");
+                println!("  --gpio               Enable GPIO/sensor screen");
                 println!("  --overview           Enable overview screen (default)");
                 println!("  --help, -h           Show this help message");
                 println!();
                 println!("Examples:");
                 println!("  {} --network --system                    # Show network and system screens", args[0]);
-                println!("  {} --screens network,system,temperature  # Same as above plus temperature", args[0]);
+                println!("  {} --screens network,system,gpio         # Same as above plus GPIO info", args[0]);
                 println!("  {} --screen-duration 15 --overview       # Show overview screen for 15s each", args[0]);
                 std::process::exit(0);
             }

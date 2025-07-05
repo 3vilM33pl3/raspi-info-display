@@ -24,7 +24,9 @@ This project currently has no test suite. When adding tests, use:
 
 ### Core Components
 
-- **Single binary application** (`src/main.rs`) - monolithic design with all functionality in one file
+- **Single binary application** (`src/main.rs`) - modular design with screen system
+- **Screen Trait System**: Modular screens implementing the `Screen` trait for different info displays
+- **Screen Manager**: Handles cycling through enabled screens and timing
 - **System Information Gathering**: Functions to collect hostname, IP, CPU temp, memory, disk usage, uptime
 - **Display Management**: SSD1306 OLED display control via I2C using embedded-graphics
 - **Service Management**: Daemon mode support with systemd integration
@@ -49,6 +51,24 @@ This project currently has no test suite. When adding tests, use:
 - `--clear` - Clear display and exit
 - `--daemon` or `-d` - Run as daemon
 - `--interval N` or `-i N` - Update interval in seconds (default: 5)
+- `--screen-duration N` or `-s N` - Duration each screen is shown in seconds (default: 10)
+- `--screens <list>` - Comma-separated list of screens to enable
+- `--network` - Enable network information screen
+- `--system` - Enable system information screen (CPU, uptime)
+- `--storage` - Enable storage information screen (memory, disk)
+- `--overview` - Enable overview screen (all info combined, default)
+- `--help` or `-h` - Show help message
+
+## Screen Types
+
+The application supports multiple modular screens that can be enabled individually:
+
+- **Network Screen**: Displays hostname, domain, and IP address
+- **System Screen**: Shows CPU temperature and system uptime
+- **Storage Screen**: Shows memory usage and disk usage
+- **Overview Screen**: Combined view with all information (original layout)
+
+When multiple screens are enabled, the application cycles through them at the specified screen duration interval.
 
 ## Deployment
 

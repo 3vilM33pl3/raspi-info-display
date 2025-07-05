@@ -58,10 +58,18 @@ impl Screen for SystemScreen {
     fn render(&self, _sys: &System) -> Result<String> {
         let cpu_temp = get_cpu_temp().unwrap_or_else(|_| "N/A".to_string());
         let uptime = get_uptime();
+        let boot_part = get_boot_partition();
+        
+        // Extract just device name from boot partition
+        let boot_device = if let Some(dev_name) = boot_part.split('/').last() {
+            dev_name.to_string()
+        } else {
+            boot_part
+        };
         
         Ok(format!(
-            "CPU: {}\nUptime: {}",
-            cpu_temp, uptime
+            "CPU: {}\nUptime: {}\nBoot: {}",
+            cpu_temp, uptime, boot_device
         ))
     }
 }
@@ -116,6 +124,48 @@ impl Screen for OverviewScreen {
     }
 }
 
+// Hardware information screen
+struct HardwareScreen;
+
+impl Screen for HardwareScreen {
+    fn name(&self) -> &'static str {
+        "hardware"
+    }
+    
+    fn render(&self, _sys: &System) -> Result<String> {
+        let pi_model = get_pi_model();
+        let serial = get_serial_number();
+        let firmware = get_firmware_version();
+        
+        // Split model name over two lines for better readability
+        let model_lines = if pi_model.len() > 18 {
+            // Find a good break point (space, hyphen, or just split)
+            let break_point = pi_model[..18].rfind(' ')
+                .or_else(|| pi_model[..18].rfind('-'))
+                .unwrap_or(15);
+            
+            let first_line = &pi_model[..break_point];
+            let second_line = pi_model[break_point..].trim();
+            
+            format!("{}\n{}", first_line, second_line)
+        } else {
+            pi_model
+        };
+        
+        // Truncate serial to last 8 characters for privacy/space
+        let short_serial = if serial.len() > 8 {
+            format!("...{}", &serial[serial.len()-8..])
+        } else {
+            serial
+        };
+        
+        Ok(format!(
+            "{}\nSerial: {}\nFW: {}",
+            model_lines, short_serial, firmware
+        ))
+    }
+}
+
 // Screen manager to handle cycling through screens
 struct ScreenManager {
     screens: Vec<Box<dyn Screen>>,
@@ -133,6 +183,7 @@ impl ScreenManager {
                 "network" => screens.push(Box::new(NetworkScreen)),
                 "system" => screens.push(Box::new(SystemScreen)),
                 "storage" => screens.push(Box::new(StorageScreen)),
+                "hardware" => screens.push(Box::new(HardwareScreen)),
                 "overview" => screens.push(Box::new(OverviewScreen)),
                 _ => eprintln!("Unknown screen: {}", screen_name),
             }
@@ -252,6 +303,88 @@ fn get_uptime() -> String {
     format!("{}d {}h {}m", days, hours, minutes)
 }
 
+fn get_pi_model() -> String {
+    if let Ok(contents) = fs::read_to_string("/proc/device-tree/model") {
+        // Remove null terminator and clean up
+        contents.trim_end_matches('\0').to_string()
+    } else if let Ok(contents) = fs::read_to_string("/proc/cpuinfo") {
+        // Fallback: look for Model in cpuinfo
+        for line in contents.lines() {
+            if line.starts_with("Model") {
+                if let Some(model) = line.split(':').nth(1) {
+                    return model.trim().to_string();
+                }
+            }
+        }
+        "Unknown Pi Model".to_string()
+    } else {
+        "Unknown Pi Model".to_string()
+    }
+}
+
+fn get_serial_number() -> String {
+    if let Ok(contents) = fs::read_to_string("/proc/device-tree/serial-number") {
+        contents.trim_end_matches('\0').to_string()
+    } else if let Ok(contents) = fs::read_to_string("/proc/cpuinfo") {
+        // Fallback: look for Serial in cpuinfo
+        for line in contents.lines() {
+            if line.starts_with("Serial") {
+                if let Some(serial) = line.split(':').nth(1) {
+                    return serial.trim().to_string();
+                }
+            }
+        }
+        "Unknown".to_string()
+    } else {
+        "Unknown".to_string()
+    }
+}
+
+fn get_firmware_version() -> String {
+    if let Ok(output) = std::process::Command::new("vcgencmd")
+        .arg("version")
+        .output() {
+        if output.status.success() {
+            let version_output = String::from_utf8_lossy(&output.stdout);
+            // Extract just the version part
+            for line in version_output.lines() {
+                if line.contains("version ") {
+                    if let Some(version) = line.split("version ").nth(1) {
+                        return version.split(' ').next().unwrap_or("Unknown").to_string();
+                    }
+                }
+            }
+        }
+    }
+    "Unknown".to_string()
+}
+
+fn get_boot_partition() -> String {
+    if let Ok(output) = std::process::Command::new("findmnt")
+        .args(["-n", "-o", "SOURCE", "/boot"])
+        .output() {
+        if output.status.success() {
+            let boot_device = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if !boot_device.is_empty() {
+                return boot_device;
+            }
+        }
+    }
+    
+    // Fallback: check /proc/mounts
+    if let Ok(contents) = fs::read_to_string("/proc/mounts") {
+        for line in contents.lines() {
+            if line.contains(" /boot ") {
+                if let Some(device) = line.split_whitespace().next() {
+                    return device.to_string();
+                }
+            }
+        }
+    }
+    
+    "Unknown".to_string()
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
     
@@ -292,6 +425,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "--network" => enabled_screens.push("network"),
             "--system" => enabled_screens.push("system"),
             "--storage" => enabled_screens.push("storage"),
+            "--hardware" => enabled_screens.push("hardware"),
             "--overview" => enabled_screens.push("overview"),
             "--help" | "-h" => {
                 println!("Info Display - System information on OLED display");
@@ -302,16 +436,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 println!("  --daemon, -d         Run as daemon");
                 println!("  --interval, -i <N>   Update interval in seconds (default: 5)");
                 println!("  --screen-duration, -s <N>  Duration each screen is shown (default: 10)");
-                println!("  --screens <list>     Comma-separated list of screens (network,system,storage,overview)");
+                println!("  --screens <list>     Comma-separated list of screens (network,system,storage,hardware,overview)");
                 println!("  --network            Enable network screen");
                 println!("  --system             Enable system screen");
                 println!("  --storage            Enable storage screen");
+                println!("  --hardware           Enable hardware screen");
                 println!("  --overview           Enable overview screen (default)");
                 println!("  --help, -h           Show this help message");
                 println!();
                 println!("Examples:");
                 println!("  {} --network --system                    # Show network and system screens", args[0]);
-                println!("  {} --screens network,system,storage      # Same as above plus storage", args[0]);
+                println!("  {} --screens network,system,hardware     # Same as above plus hardware", args[0]);
                 println!("  {} --screen-duration 15 --overview       # Show overview screen for 15s each", args[0]);
                 std::process::exit(0);
             }

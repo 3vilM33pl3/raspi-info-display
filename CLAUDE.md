@@ -39,6 +39,10 @@ This project currently has no test suite. When adding tests, use:
 - `get_memory_info()` - Uses sysinfo crate for memory statistics
 - `get_disk_usage()` - Aggregates disk usage across all mounted filesystems
 - `get_uptime()` - Parses `/proc/uptime` for system uptime
+- `get_pi_model()` - Reads Pi model from `/proc/device-tree/model` or `/proc/cpuinfo`
+- `get_serial_number()` - Reads serial from `/proc/device-tree/serial-number` or `/proc/cpuinfo`
+- `get_firmware_version()` - Gets firmware version via `vcgencmd version`
+- `get_boot_partition()` - Finds boot partition via `findmnt` or `/proc/mounts`
 
 ### Hardware Requirements
 
@@ -54,8 +58,9 @@ This project currently has no test suite. When adding tests, use:
 - `--screen-duration N` or `-s N` - Duration each screen is shown in seconds (default: 10)
 - `--screens <list>` - Comma-separated list of screens to enable
 - `--network` - Enable network information screen
-- `--system` - Enable system information screen (CPU, uptime)
+- `--system` - Enable system information screen (CPU, uptime, boot partition)
 - `--storage` - Enable storage information screen (memory, disk)
+- `--hardware` - Enable hardware information screen (Pi model, serial, firmware)
 - `--overview` - Enable overview screen (all info combined, default)
 - `--help` or `-h` - Show help message
 
@@ -64,8 +69,9 @@ This project currently has no test suite. When adding tests, use:
 The application supports multiple modular screens that can be enabled individually:
 
 - **Network Screen**: Displays hostname, domain, and IP address
-- **System Screen**: Shows CPU temperature and system uptime
+- **System Screen**: Shows CPU temperature, system uptime, and boot partition
 - **Storage Screen**: Shows memory usage and disk usage
+- **Hardware Screen**: Shows Pi model, serial number, and firmware version
 - **Overview Screen**: Combined view with all information (original layout)
 
 When multiple screens are enabled, the application cycles through them at the specified screen duration interval.

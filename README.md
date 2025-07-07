@@ -2,6 +2,21 @@
 
 A modular Rust application that displays comprehensive system information on an SSD1306 OLED display connected to a Raspberry Pi via I2C.
 
+### Screen Examples
+
+<table>
+<tr>
+<td align="center"><b>Overview</b><br><img src="img/01_overview.png" width="200" alt="Overview Screen"/></td>
+<td align="center"><b>Temperature</b><br><img src="img/02_temperature.png" width="200" alt="Temperature Screen"/></td>
+<td align="center"><b>GPIO/Sensors</b><br><img src="img/03_gpio.png" width="200" alt="GPIO Screen"/></td>
+</tr>
+<tr>
+<td align="center"><b>Network</b><br><img src="img/04_network.png" width="200" alt="Network Screen"/></td>
+<td align="center"><b>Hardware</b><br><img src="img/07_hardware.png" width="200" alt="System Screen"/></td>
+<td align="center"><b>Storage</b><br><img src="img/06_storage.png" width="200" alt="Storage Screen"/></td>
+</tr>
+</table>
+
 ## Features
 
 - **Modular Screen System**: Choose from multiple information screens that cycle automatically
@@ -138,6 +153,8 @@ sudo ./target/release/info_display --screens network,system,storage,hardware,tem
 - **`--temperature`**: Temperature monitoring (CPU/GPU temps, frequency, throttling)
 - **`--gpio`**: GPIO and sensor information (I2C devices, GPIO states, SPI, 1-Wire)
 - **`--overview`**: Combined overview (default, shows key information from all screens)
+
+
 
 ### Configuration Options
 

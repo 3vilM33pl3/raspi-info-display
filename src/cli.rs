@@ -63,6 +63,10 @@ impl CliParser {
                     Self::print_help(&args[0]);
                     std::process::exit(0);
                 }
+                "--version" | "-V" => {
+                    Self::print_version();
+                    std::process::exit(0);
+                }
                 arg if arg.starts_with("--interval=") => {
                     if let Some(value) = arg.strip_prefix("--interval=") {
                         if let Ok(seconds) = value.parse::<u64>() {
@@ -114,6 +118,13 @@ impl CliParser {
         }
     }
     
+    fn print_version() {
+        println!("info_display {}", env!("CARGO_PKG_VERSION"));
+        println!("Modular system information display service for OLED screens");
+        println!("Copyright (C) 2025 3vilM33pl3 <olivier@robotmotel.com>");
+        println!("This is free software; see the source for copying conditions.");
+    }
+    
     fn print_help(program_name: &str) {
         println!("Info Display - System information on OLED display");
         println!("Usage: {} [OPTIONS]", program_name);
@@ -134,6 +145,7 @@ impl CliParser {
         println!("  --mux                Use TCA9548A I2C multiplexer");
         println!("  --mux-channel <0-7>  Select multiplexer channel (default: 0)");
         println!("  --mux-address <addr> Set multiplexer I2C address (default: 0x70)");
+        println!("  --version, -V        Show version information");
         println!("  --help, -h           Show this help message");
         println!();
         println!("Environment Variables:");

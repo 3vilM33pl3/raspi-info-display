@@ -40,6 +40,7 @@ priority = "optional"
 assets = [
     ["target/release/info_display", "usr/bin/", "755"],
     ["debian/systemd/info-display.service", "usr/share/info-display/", "644"],
+    ["debian/man/info_display.1", "usr/share/man/man1/", "644"],
     ["README.md", "usr/share/doc/info-display/", "644"],
 ]
 maintainer-scripts = "debian/"

@@ -1,0 +1,187 @@
+.TH INFO_DISPLAY 1 "January 2025" "info_display 1.2.0" "User Commands"
+.SH NAME
+info_display \- modular system information display service for OLED screens
+.SH SYNOPSIS
+.B info_display
+[\fIOPTIONS\fR]
+.SH DESCRIPTION
+.B info_display
+is a modular Rust-based system information display service that shows
+hostname, IP address, CPU temperature, memory usage, disk usage,
+and uptime on an SSD1306 OLED display via I2C.
+
+The service features a modular screen system with multiple display modes
+including network information, system status, storage details, hardware
+information, temperature monitoring, and GPIO/sensor data. It supports
+factory pattern screen management, comprehensive error handling, and
+full environment variable configuration.
+
+The service supports TCA9548A I2C multiplexer for connecting up to 8 displays
+and runs continuously, updating the display at configurable intervals.
+.SH OPTIONS
+.TP
+.B \-\-clear
+Clear display and exit
+.TP
+.B \-\-daemon, \-d
+Run as daemon
+.TP
+.B \-\-interval, \-i \fIN\fR
+Update interval in seconds (default: 5)
+.TP
+.B \-\-screen\-duration, \-s \fIN\fR
+Duration each screen is shown in seconds (default: 10)
+.TP
+.B \-\-screens \fIlist\fR
+Comma-separated list of screens to enable. Available screens:
+.B network, system, storage, hardware, temperature, gpio, overview
+.TP
+.B \-\-network
+Enable network information screen (hostname, domain, IP, MAC address)
+.TP
+.B \-\-system
+Enable system information screen (CPU temperature, uptime, boot partition)
+.TP
+.B \-\-storage
+Enable storage information screen (memory usage, disk usage)
+.TP
+.B \-\-hardware
+Enable hardware information screen (Pi model, serial number, firmware version)
+.TP
+.B \-\-temperature
+Enable temperature information screen (CPU/GPU temperatures, frequency, throttling status)
+.TP
+.B \-\-gpio
+Enable GPIO/sensor information screen (I2C devices, GPIO states, SPI devices, 1-Wire sensors)
+.TP
+.B \-\-overview
+Enable overview screen with combined information (default)
+.TP
+.B \-\-mux
+Use TCA9548A I2C multiplexer
+.TP
+.B \-\-mux\-channel \fI0\-7\fR
+Select multiplexer channel (default: 0)
+.TP
+.B \-\-mux\-address \fIaddr\fR
+Set multiplexer I2C address (default: 0x70)
+.TP
+.B \-\-version, \-V
+Show version information and exit
+.TP
+.B \-\-help, \-h
+Show help message and exit
+.SH ENVIRONMENT
+The following environment variables can be used to configure the service.
+Command-line arguments take precedence over environment variables.
+.TP
+.B INFO_DISPLAY_INTERVAL=\fIseconds\fR
+Set the update interval in seconds
+.TP
+.B INFO_DISPLAY_SCREEN_DURATION=\fIseconds\fR
+Set the screen duration in seconds
+.TP
+.B INFO_DISPLAY_SCREENS=\fIscreen1,screen2\fR
+Set enabled screens as comma-separated list
+.TP
+.B INFO_DISPLAY_DAEMON=\fItrue|false\fR
+Enable or disable daemon mode
+.TP
+.B INFO_DISPLAY_MUX_ENABLED=\fItrue|false\fR
+Enable or disable multiplexer support
+.TP
+.B INFO_DISPLAY_MUX_CHANNEL=\fI0\-7\fR
+Set the multiplexer channel
+.TP
+.B INFO_DISPLAY_MUX_ADDRESS=\fI0xNN\fR
+Set the multiplexer I2C address in hexadecimal
+.SH EXAMPLES
+.TP
+Show network and system screens:
+.B info_display \-\-network \-\-system
+.TP
+Use specific screens with custom duration:
+.B info_display \-\-screens network,system,gpio \-\-screen\-duration 15
+.TP
+Run as daemon with multiplexer:
+.B info_display \-\-daemon \-\-mux \-\-mux\-channel 3
+.TP
+Configure via environment variables:
+.B INFO_DISPLAY_SCREENS=network,system info_display
+.TP
+Clear display and exit:
+.B info_display \-\-clear
+.SH SCREEN TYPES
+.TP
+.B network
+Displays hostname, domain, IP address, and MAC address
+.TP
+.B system
+Shows CPU temperature, system uptime, and boot partition
+.TP
+.B storage
+Displays memory usage and disk usage information
+.TP
+.B hardware
+Shows Pi model, serial number, and firmware version
+.TP
+.B temperature
+Displays CPU/GPU temperatures, CPU frequency, and throttling status
+.TP
+.B gpio
+Shows I2C devices, GPIO pin states, SPI devices, and 1-Wire sensors
+.TP
+.B overview
+Combined view with all essential system information (default)
+.SH HARDWARE REQUIREMENTS
+.IP \(bu 2
+Raspberry Pi with I2C enabled
+.IP \(bu 2
+SSD1306 OLED display (128x64 pixels)
+.IP \(bu 2
+I2C connection on /dev/i2c-1
+.IP \(bu 2
+Optional: TCA9548A I2C multiplexer for multiple displays
+.SH FILES
+.TP
+.B /tmp/info_display.pid
+PID file when running in daemon mode
+.TP
+.B /sys/class/thermal/thermal_zone0/temp
+CPU temperature source
+.TP
+.B /proc/uptime
+System uptime source
+.TP
+.B /proc/cpuinfo
+Hardware information source
+.SH SYSTEMD SERVICE
+The service can be managed via systemd:
+.TP
+Start the service:
+.B sudo systemctl start info\-display.service
+.TP
+Enable at boot:
+.B sudo systemctl enable info\-display.service
+.TP
+Check status:
+.B sudo systemctl status info\-display.service
+.SH EXIT STATUS
+.TP
+.B 0
+Success
+.TP
+.B 1
+General error (configuration, hardware, or runtime error)
+.SH BUGS
+Report bugs at: https://github.com/3vilM33pl3/raspi-info-display/issues
+.SH AUTHOR
+Written by 3vilM33pl3 <olivier@robotmotel.com>
+.SH COPYRIGHT
+Copyright \(co 2025 3vilM33pl3. This is free software; see the source for
+copying conditions. There is NO warranty; not even for MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.
+.SH SEE ALSO
+.BR systemctl (1),
+.BR i2cdetect (8),
+.BR vcgencmd (1)

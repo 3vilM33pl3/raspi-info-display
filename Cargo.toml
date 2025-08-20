@@ -1,8 +1,8 @@
 [package]
 name = "info_display"
-version = "1.0.0"
+version = "1.1.0"
 edition = "2024"
-description = "System information display service for OLED screens"
+description = "System information display service for OLED screens with TCA9548A multiplexer support"
 
 [dependencies]
 rppal = "0.22.1"
@@ -26,6 +26,7 @@ A Rust-based system information display service that shows
 hostname, IP address, CPU temperature, memory usage, disk usage,
 and uptime on an SSD1306 OLED display via I2C.
 
+Supports TCA9548A I2C multiplexer for connecting up to 8 displays.
 The service runs continuously and updates the display at
 configurable intervals."""
 depends = "$auto"

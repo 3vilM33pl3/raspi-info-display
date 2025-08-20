@@ -834,7 +834,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 DisplayRotation::Rotate0,
             )
             .into_buffered_graphics_mode();
-            display.init().unwrap();
+            display.init().map_err(|e| format!("Failed to initialize display on multiplexer channel {} for clearing: {:?}", mux_channel, e))?;
             display.clear(BinaryColor::Off).unwrap();
             display.flush().unwrap();
         } else {
@@ -846,7 +846,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 DisplayRotation::Rotate0,
             )
             .into_buffered_graphics_mode();
-            display.init().unwrap();
+            display.init().map_err(|e| format!("Failed to initialize display for clearing: {:?}. Check if display is connected or use --mux flag if using multiplexer.", e))?;
             display.clear(BinaryColor::Off).unwrap();
             display.flush().unwrap();
         }
@@ -877,7 +877,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .into_buffered_graphics_mode();
         
-        display.init().unwrap();
+        display.init().map_err(|e| format!("Failed to initialize display on multiplexer channel {}: {:?}", mux_channel, e))?;
         (display, Some(mux_handle))
     } else {
         // Standard I2C connection
@@ -891,7 +891,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .into_buffered_graphics_mode();
         
-        display.init().unwrap();
+        display.init().map_err(|e| format!("Failed to initialize display on I2C bus: {:?}. Check if display is connected or use --mux flag if using multiplexer.", e))?;
         (display, None)
     };
 

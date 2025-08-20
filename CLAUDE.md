@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-A Rust application that displays system information on an SSD1306 OLED display connected to a Raspberry Pi via I2C. The service displays hostname, IP address, CPU temperature, memory usage, disk usage, and uptime.
+A Rust application that displays system information on an SSD1306 OLED display connected to a Raspberry Pi via I2C. Features modular screen system with TCA9548A I2C multiplexer support for up to 8 displays.
 
 ## Build Commands
 
@@ -13,6 +13,7 @@ A Rust application that displays system information on an SSD1306 OLED display c
 - **Check code**: `cargo check`
 - **Clean build artifacts**: `cargo clean`
 - **Build Debian package**: `./build_package.sh` or `cargo deb`
+- **Test I2C multiplexer**: `./scripts/test-tca9548a.sh [bus] [address]`
 
 ## Testing
 
@@ -27,9 +28,17 @@ This project currently has no test suite. When adding tests, use:
 - **Single binary application** (`src/main.rs`) - modular design with screen system
 - **Screen Trait System**: Modular screens implementing the `Screen` trait for different info displays
 - **Screen Manager**: Handles cycling through enabled screens and timing
+- **TCA9548A Multiplexer** (`src/tca9548a.rs`) - I2C multiplexer for up to 8 displays
 - **System Information Gathering**: Functions to collect hostname, IP, CPU temp, memory, disk usage, uptime
 - **Display Management**: SSD1306 OLED display control via I2C using embedded-graphics
 - **Service Management**: Daemon mode support with systemd integration
+
+### Architecture Patterns
+
+- **Trait-based Screens**: Each screen implements `Screen` trait with `name()`, `title()`, and `render()` methods
+- **Shared I2C Bus**: Uses `Arc<Mutex<I2cdev>>` for thread-safe I2C access across multiplexer and display
+- **Modular Information Sources**: Each screen gathers specific system data (network, storage, hardware, etc.)
+- **Error Handling**: Uses `anyhow` crate for simplified error propagation throughout the application
 
 ### Key Functions
 
@@ -60,10 +69,14 @@ This project currently has no test suite. When adding tests, use:
 
 ## Command Line Interface
 
+### Basic Options
 - `--clear` - Clear display and exit
 - `--daemon` or `-d` - Run as daemon
 - `--interval N` or `-i N` - Update interval in seconds (default: 5)
 - `--screen-duration N` or `-s N` - Duration each screen is shown in seconds (default: 10)
+- `--help` or `-h` - Show help message
+
+### Screen Selection
 - `--screens <list>` - Comma-separated list of screens to enable
 - `--network` - Enable network information screen
 - `--system` - Enable system information screen (CPU, uptime, boot partition)
@@ -72,7 +85,11 @@ This project currently has no test suite. When adding tests, use:
 - `--temperature` - Enable temperature information screen (CPU/GPU temps, throttling)
 - `--gpio` - Enable GPIO/sensor information screen (I2C, SPI, GPIO states, 1-Wire)
 - `--overview` - Enable overview screen (all info combined, default)
-- `--help` or `-h` - Show help message
+
+### Multiplexer Options
+- `--mux` - Enable TCA9548A multiplexer mode
+- `--mux-channel N` - Select multiplexer channel (0-7, default: 0)
+- `--mux-address 0xNN` - Multiplexer I2C address (default: 0x70)
 
 ## Screen Types
 

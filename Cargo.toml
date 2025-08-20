@@ -1,8 +1,8 @@
 [package]
 name = "info_display"
-version = "1.1.0"
+version = "1.2.0"
 edition = "2024"
-description = "System information display service for OLED screens with TCA9548A multiplexer support"
+description = "Modular system information display service for OLED screens with TCA9548A multiplexer support and environment variable configuration"
 
 [dependencies]
 rppal = "0.22.1"
@@ -22,9 +22,14 @@ maintainer = "3vilM33pl3 <olivier@robotmotel.com>"
 copyright = "2025, 3vilM33pl3 <olivier@robotmotel.com>"
 license-file = ["LICENSE", "4"]
 extended-description = """\
-A Rust-based system information display service that shows
+A modular Rust-based system information display service that shows
 hostname, IP address, CPU temperature, memory usage, disk usage,
 and uptime on an SSD1306 OLED display via I2C.
+
+Features modular screen system with multiple display modes (network,
+system, storage, hardware, temperature, GPIO/sensors), factory pattern
+for screen management, comprehensive error handling, and full 
+environment variable configuration support.
 
 Supports TCA9548A I2C multiplexer for connecting up to 8 displays.
 The service runs continuously and updates the display at

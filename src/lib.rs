@@ -1,1 +1,10 @@
 pub mod tca9548a;
+pub mod system_info;
+pub mod screens;
+pub mod screen_factory;
+pub mod screen_manager;
+pub mod display;
+pub mod cli;
+pub mod config;
+pub mod errors;
+pub mod app;

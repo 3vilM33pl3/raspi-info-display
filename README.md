@@ -27,6 +27,7 @@ A modular Rust application that displays comprehensive system information on an 
 - **Temperature Monitoring**: CPU/GPU temperatures, frequency, and throttling status
 - **GPIO/Sensor Support**: I2C devices, GPIO pin states, SPI devices, and 1-Wire sensors
 - **Overview Screen**: Combined view with all essential information
+- **TCA9548A Multiplexer Support**: Connect up to 8 OLED displays using a single I2C bus
 - **Daemon Mode**: Run as a background service with systemd integration
 - **Configurable Display**: Customizable update intervals and screen rotation timing
 - **128x64 OLED Support**: Optimized for SSD1306 displays via I2C
@@ -36,6 +37,7 @@ A modular Rust application that displays comprehensive system information on an 
 - Raspberry Pi (any model with I2C support)
 - SSD1306 OLED display (128x64 pixels, 128x32 compatible)
 - I2C connection between Raspberry Pi and display
+- Optional: TCA9548A I2C multiplexer for multiple displays
 - Optional: Additional sensors (1-Wire temperature sensors, I2C devices, etc.)
 
 ## Software Requirements
@@ -125,6 +127,36 @@ SSD1306 OLED Display        Raspberry Pi 5 GPIO Header
 Run with default overview screen:
 ```bash
 sudo ./target/release/info_display
+```
+
+### Using with TCA9548A I2C Multiplexer
+
+The TCA9548A multiplexer allows you to connect up to 8 OLED displays on a single I2C bus:
+
+#### Multiplexer Wiring
+```
+TCA9548A             Raspberry Pi
+VIN    ←→  3.3V (Pin 1)
+GND    ←→  GND (Pin 14)
+SDA    ←→  SDA (Pin 3)
+SCL    ←→  SCL (Pin 5)
+
+Connect OLED displays to SC0/SD0 through SC7/SD7 channels
+```
+
+#### Multiplexer Usage
+```bash
+# Use display on channel 0 (default)
+sudo ./target/release/info_display --mux
+
+# Use display on channel 3
+sudo ./target/release/info_display --mux --mux-channel 3
+
+# Use multiplexer at different address (default is 0x70)
+sudo ./target/release/info_display --mux --mux-address 0x71 --mux-channel 2
+
+# Combine with screen selection
+sudo ./target/release/info_display --mux --mux-channel 1 --network --system
 ```
 
 ### Screen Selection

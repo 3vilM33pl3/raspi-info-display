@@ -1,6 +1,7 @@
 use std::fmt;
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub enum AppError {
     Io(std::io::Error),
     Display(String),
@@ -91,32 +92,39 @@ impl AppError {
         AppError::Daemon(msg.to_string())
     }
 
+    #[allow(dead_code)]
     pub fn screen_factory(msg: &str) -> Self {
         AppError::ScreenFactory(msg.to_string())
     }
 
+    #[allow(dead_code)]
     pub fn screen_manager(msg: &str) -> Self {
         AppError::ScreenManager(msg.to_string())
     }
 
+    #[allow(dead_code)]
     pub fn application(msg: &str) -> Self {
         AppError::Application(msg.to_string())
     }
 
+    #[allow(dead_code)]
     pub fn hardware(msg: &str) -> Self {
         AppError::Hardware(msg.to_string())
     }
 
+    #[allow(dead_code)]
     pub fn permission(msg: &str) -> Self {
         AppError::Permission(msg.to_string())
     }
 
+    #[allow(dead_code)]
     pub fn multiplexer<E: std::error::Error + Send + Sync + 'static>(err: E) -> Self {
         AppError::Multiplexer(Box::new(err))
     }
 }
 
 // Helper trait for converting display errors
+#[allow(dead_code)]
 pub trait DisplayErrorExt<T> {
     fn display_err(self, context: &str) -> Result<T>;
 }

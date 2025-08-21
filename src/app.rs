@@ -113,6 +113,7 @@ impl Application {
         }
     }
 
+    #[allow(dead_code)]
     pub fn config(&self) -> &AppConfig {
         &self.config
     }

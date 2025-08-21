@@ -28,6 +28,7 @@ impl ScreenFactory {
         vec!["network", "system", "storage", "hardware", "temperature", "gpio", "overview"]
     }
 
+    #[allow(dead_code)]
     pub fn get_screen_descriptions() -> HashMap<&'static str, &'static str> {
         let mut descriptions = HashMap::new();
         descriptions.insert("network", "Display hostname, domain, IP address, and MAC address");

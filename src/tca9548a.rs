@@ -2,6 +2,7 @@ use linux_embedded_hal::I2cdev;
 use embedded_hal::i2c::I2c;
 use std::sync::{Arc, Mutex};
 
+#[allow(dead_code)]
 pub const TCA9548A_ADDRESS: u8 = 0x70;
 
 pub struct Tca9548a {
@@ -11,6 +12,7 @@ pub struct Tca9548a {
 }
 
 impl Tca9548a {
+    #[allow(dead_code)]
     pub fn new(i2c: Arc<Mutex<I2cdev>>) -> Self {
         Self::with_address(i2c, TCA9548A_ADDRESS)
     }
@@ -38,6 +40,7 @@ impl Tca9548a {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub fn disable_all_channels(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         let mut i2c = self.i2c.lock().unwrap();
         i2c.write(self.address, &[0x00])?;
@@ -47,20 +50,24 @@ impl Tca9548a {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub fn get_current_channel(&self) -> Option<u8> {
         self.current_channel
     }
 
+    #[allow(dead_code)]
     pub fn get_i2c(&self) -> Arc<Mutex<I2cdev>> {
         Arc::clone(&self.i2c)
     }
 }
 
+#[allow(dead_code)]
 pub struct MultiplexedI2c {
     multiplexer: Arc<Mutex<Tca9548a>>,
     channel: u8,
 }
 
+#[allow(dead_code)]
 impl MultiplexedI2c {
     pub fn new(multiplexer: Arc<Mutex<Tca9548a>>, channel: u8) -> Self {
         Self {

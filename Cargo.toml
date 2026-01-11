@@ -34,7 +34,7 @@ environment variable configuration support.
 Supports TCA9548A I2C multiplexer for connecting up to 8 displays.
 The service runs continuously and updates the display at
 configurable intervals."""
-depends = "$auto"
+depends = "libc6 (>= 2.17)"
 section = "utils"
 priority = "optional"
 assets = [

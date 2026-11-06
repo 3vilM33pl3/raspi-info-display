@@ -1,4 +1,4 @@
-.TH INFO_DISPLAY 1 "January 2025" "info_display 1.2.0" "User Commands"
+.TH INFO_DISPLAY 1 "November 2026" "info_display 1.3.0" "User Commands"
 .SH NAME
 info_display \- modular system information display service for OLED screens
 .SH SYNOPSIS
@@ -34,7 +34,7 @@ Duration each screen is shown in seconds (default: 10)
 .TP
 .B \-\-screens \fIlist\fR
 Comma-separated list of screens to enable. Available screens:
-.B network, system, storage, hardware, temperature, gpio, overview
+.B network, system, storage, hardware, temperature, gpio, overview, ups
 .TP
 .B \-\-network
 Enable network information screen (hostname, domain, IP, MAC address)
@@ -53,6 +53,9 @@ Enable temperature information screen (CPU/GPU temperatures, frequency, throttli
 .TP
 .B \-\-gpio
 Enable GPIO/sensor information screen (I2C devices, GPIO states, SPI devices, 1-Wire sensors)
+.TP
+.B \-\-ups
+Enable the read-only UPS status screen (requires /usr/bin/upsc and a reachable NUT server).
 .TP
 .B \-\-overview
 Enable overview screen with combined information (default)
@@ -95,6 +98,9 @@ Set the multiplexer channel
 .TP
 .B INFO_DISPLAY_MUX_ADDRESS=\fI0xNN\fR
 Set the multiplexer I2C address in hexadecimal
+.TP
+.B INFO_DISPLAY_UPS_SOURCE=\fIname@host\fR
+NUT source for the UPS screen (default: apc@127.0.0.1).
 .SH EXAMPLES
 .TP
 Show network and system screens:
@@ -102,6 +108,9 @@ Show network and system screens:
 .TP
 Use specific screens with custom duration:
 .B info_display \-\-screens network,system,gpio \-\-screen\-duration 15
+.TP
+Rotate the network and UPS screens:
+.B info_display \-\-screens network,ups
 .TP
 Run as daemon with multiplexer:
 .B info_display \-\-daemon \-\-mux \-\-mux\-channel 3
@@ -133,6 +142,15 @@ Shows I2C devices, GPIO pin states, SPI devices, and 1-Wire sensors
 .TP
 .B overview
 Combined view with all essential system information (default)
+.TP
+.B ups
+Displays UPS status, battery charge, estimated runtime, load and input voltage.
+Missing numeric fields appear as \-\-.
+Polls in the background every five seconds, with a two-second timeout.
+A failed query or data at least fifteen seconds old shows "UPS unavailable".
+Battery operation, faults, unknown status and unavailable data hold this screen
+until fresh mains status (OL or OL CHRG) resumes normal rotation.
+No UPS control commands are sent.
 .SH HARDWARE REQUIREMENTS
 .IP \(bu 2
 Raspberry Pi with I2C enabled

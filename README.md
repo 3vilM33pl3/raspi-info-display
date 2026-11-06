@@ -173,7 +173,7 @@ sudo ./target/release/info_display --network --system --temperature
 sudo ./target/release/info_display --screens network,system,storage,hardware,temperature,gpio
 
 # All available screens
-sudo ./target/release/info_display --screens network,system,storage,hardware,temperature,gpio,overview
+sudo ./target/release/info_display --screens network,system,storage,hardware,temperature,gpio,overview,ups
 ```
 
 ### Available Screens
@@ -185,7 +185,13 @@ sudo ./target/release/info_display --screens network,system,storage,hardware,tem
 - **`--temperature`**: Temperature monitoring (CPU/GPU temps, frequency, throttling)
 - **`--gpio`**: GPIO and sensor information (I2C devices, GPIO states, SPI, 1-Wire)
 - **`--overview`**: Combined overview (default, shows key information from all screens)
+- **`--ups`**: UPS status, battery charge, estimated runtime, load and input voltage from Network UPS Tools (NUT)
 
+### UPS screen
+
+Run `info_display --ups` for the UPS screen alone, or `info_display --screens network,ups` to rotate it with the network screen. The screen requires `/usr/bin/upsc` (Debian: `nut-client`) and a reachable NUT server. Check the default source with `upsc apc@127.0.0.1`; set `INFO_DISPLAY_UPS_SOURCE=name@host` to select another UPS.
+
+The screen polls in the background every five seconds with a two-second timeout. Missing numeric fields appear as `--`. A failed query or a reading at least fifteen seconds old shows **UPS unavailable**. On battery, low battery, overload, a replace-battery warning, unknown status or unavailable data keeps the UPS screen visible. Normal rotation resumes on mains power (`OL`, optionally with `CHRG`). The screen only reads status; it sends no UPS control commands.
 
 
 ### Configuration Options

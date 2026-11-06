@@ -1,3 +1,4 @@
+pub mod ups;
 pub mod tca9548a;
 pub mod system_info;
 pub mod screens;

@@ -35,6 +35,7 @@ impl CliParser {
                         i += 1;
                     }
                 }
+                "--ups" => config.add_screen("ups"),
                 "--network" => config.add_screen("network"),
                 "--system" => config.add_screen("system"),
                 "--storage" => config.add_screen("storage"),
@@ -134,7 +135,8 @@ impl CliParser {
         println!("  --daemon, -d         Run as daemon");
         println!("  --interval, -i <N>   Update interval in seconds (default: 5)");
         println!("  --screen-duration, -s <N>  Duration each screen is shown (default: 10)");
-        println!("  --screens <list>     Comma-separated list of screens (network,system,storage,hardware,temperature,gpio,overview)");
+        println!("  --screens <list>     Comma-separated list of screens (network,system,storage,hardware,temperature,gpio,overview,ups)");
+        println!("  --ups                Enable read-only UPS screen");
         println!("  --network            Enable network screen");
         println!("  --system             Enable system screen");
         println!("  --storage            Enable storage screen");
@@ -149,6 +151,7 @@ impl CliParser {
         println!("  --help, -h           Show this help message");
         println!();
         println!("Environment Variables:");
+        println!("  INFO_DISPLAY_UPS_SOURCE=<name@host>    NUT source (default: apc@127.0.0.1)");
         println!("  INFO_DISPLAY_INTERVAL=<seconds>         Update interval");
         println!("  INFO_DISPLAY_SCREEN_DURATION=<seconds>  Screen duration");
         println!("  INFO_DISPLAY_SCREENS=<screen1,screen2>  Enabled screens");

@@ -40,7 +40,8 @@ impl ScreenManager {
     }
     
     pub fn current_screen(&self) -> Option<&dyn Screen> {
-        self.screens.get(self.current_index).map(|s| s.as_ref())
+        self.screens.iter().find(|screen| screen.priority())
+            .or_else(|| self.screens.get(self.current_index)).map(|s| s.as_ref())
     }
     
     pub fn render_current_screen(&self, sys: &System) -> Result<(String, String)> {
@@ -51,5 +52,39 @@ impl ScreenManager {
         } else {
             Ok(("No Screen".to_string(), "No screens enabled".to_string()))
         }
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
+    struct FakeScreen(&'static str, Arc<AtomicBool>);
+    impl Screen for FakeScreen {
+        fn name(&self) -> &'static str { self.0 }
+        fn render(&self, _: &System) -> Result<String> { Ok(self.0.into()) }
+        fn priority(&self) -> bool { self.1.load(Ordering::Relaxed) }
+    }
+    #[test]
+    fn priority_takes_over_and_rotation_resumes_when_healthy() {
+        let fault = Arc::new(AtomicBool::new(false));
+        let mut manager = ScreenManager {
+            screens: vec![
+                Box::new(FakeScreen("network", Arc::new(AtomicBool::new(false)))),
+                Box::new(FakeScreen("ups", Arc::clone(&fault))),
+            ],
+            current_index: 0,
+            last_switch_time: std::time::Instant::now(),
+            screen_duration: Duration::from_secs(2),
+        };
+        assert_eq!(manager.current_screen().unwrap().name(), "network");
+        fault.store(true, Ordering::Relaxed);
+        assert_eq!(manager.current_screen().unwrap().name(), "ups");
+        manager.next_screen();
+        manager.next_screen();
+        assert_eq!(manager.current_screen().unwrap().name(), "ups");
+        fault.store(false, Ordering::Relaxed);
+        assert_eq!(manager.current_screen().unwrap().name(), "network");
+        manager.next_screen();
+        assert_eq!(manager.current_screen().unwrap().name(), "ups");
     }
 }

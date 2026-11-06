@@ -9,6 +9,7 @@ pub trait Screen {
         Ok(self.name().to_string())
     }
     fn render(&self, sys: &System) -> Result<String>;
+    fn priority(&self) -> bool { false }
 }
 
 // Network information screen

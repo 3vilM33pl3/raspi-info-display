@@ -1,3 +1,4 @@
+mod ups;
 mod tca9548a;
 mod system_info;
 mod screens;

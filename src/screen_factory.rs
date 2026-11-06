@@ -7,6 +7,7 @@ pub struct ScreenFactory;
 impl ScreenFactory {
     pub fn create_screen(screen_type: &str) -> Result<Box<dyn Screen>> {
         match screen_type {
+            "ups" => Ok(Box::new(crate::ups::UpsScreen::new())),
             "network" => Ok(Box::new(NetworkScreen)),
             "system" => Ok(Box::new(SystemScreen)),
             "storage" => Ok(Box::new(StorageScreen)),
@@ -25,12 +26,13 @@ impl ScreenFactory {
     }
 
     pub fn get_available_screens() -> Vec<&'static str> {
-        vec!["network", "system", "storage", "hardware", "temperature", "gpio", "overview"]
+        vec!["network", "system", "storage", "hardware", "temperature", "gpio", "overview", "ups"]
     }
 
     #[allow(dead_code)]
     pub fn get_screen_descriptions() -> HashMap<&'static str, &'static str> {
         let mut descriptions = HashMap::new();
+        descriptions.insert("ups", "Read-only UPS status, battery and estimated runtime");
         descriptions.insert("network", "Display hostname, domain, IP address, and MAC address");
         descriptions.insert("system", "Show CPU temperature, uptime, and boot partition");
         descriptions.insert("storage", "Display memory usage and disk usage information");
@@ -85,6 +87,6 @@ mod tests {
         let screens = ScreenFactory::get_available_screens();
         assert!(screens.contains(&"network"));
         assert!(screens.contains(&"overview"));
-        assert_eq!(screens.len(), 7);
+        assert_eq!(screens.len(), 8);
     }
 }
